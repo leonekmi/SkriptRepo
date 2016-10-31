@@ -154,22 +154,22 @@ on any movement:
 	message "&cVous devez accepter les CGU !"
 
 on login:
+	{softban.%player%} is true
+	wait 5 ticks
+	message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
+	execute console command "/title %player% times 5 45 5"
+	execute console command "/title %player% title ["""",{""text"":""Vous êtes soft-ban !"",""color"":""dark_red""}]"
 	if {cgu.%player%} is not true:
 		message "&2Bienvenue sur le serveur !"
 		message "&6&l(CGU) &6> &2Vous devez accepter les CGU"
 		message "&6> &2Elles sont trouvables ici : https://goo.gl/qjHFJQ"
 		message "&6> &2Vous devez les accepter en faisant /acceptcgu"
 		set {softban.%player%} to true
-  {softban.%player%} is true
-  wait 5 ticks
-  message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
-  execute console command "/title %player% times 5 45 5"
-  execute console command "/title %player% title ["""",{""text"":""Vous êtes soft-ban !"",""color"":""dark_red""}]"
 
 command /acceptcgu:
-  description: Acceptez les CGU
-  usage: /acceptcgu
-  trigger:
+	description: Acceptez les CGU
+	usage: /acceptcgu
+ 	trigger:
 		message "&6&l(CGU) &6> &2Vous avez accepté les CGU ! Merci, vous pouvez jouer !"
 		set {softban.%player%} to false
 		set {cgu.%player%} to true
