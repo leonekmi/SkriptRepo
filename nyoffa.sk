@@ -1,0 +1,95 @@
+command /ffaadmin [<text>] [<text>]:
+	permission: nyomg.ffa.admin
+	executable by: players
+	trigger:
+		if arg 1 is "addspawn":
+			if arg 2 is set:
+				if size of {ffa.spawns.%argument 2%::*} is smaller than 25:
+					add location of player to {ffa.spawns.%argument 2%::*}
+					send "&aSpawn n°&2%size of {ffa.spawns.%argument 2%::*}%&a ajouté pour l'arène &2%argument 2%&a!"
+				else:
+					send "&cTous les spawns ont déjà été placés!"
+			else:
+				send "&6/ffaadmin&aaddspawn <arene>"
+		else if arg 1 is "removeall":
+			if arg 2 is set:
+				send "&aTous les spawns ont été retirés pour larène &2%argument 2%&a!"
+				clear {ffa.spawns.%argument 2%::*}
+			else:
+				send "&6/ffaadmin &aremoveall <arene>"
+		else:
+			send "&6/ffaadmin addspawn <arene>"
+			send "&6/ffaadmin removeall <arene>"
+on arena start:
+	clear {ffa.%name of event-arena%}
+	if name of event-minigame is "ffa":
+		loop all players in event-arena:
+			add 1 to {_i}
+			teleport loop-player to {ffa.spawns.%name of event-arena%::%{_i}%}
+			execute console command "gamemode 0 %loop-player%"
+			execute console command "gadgetsmenu reset %loop-player% all"
+			execute console command "heal %loop-player%"
+			execute console command "give %loop-player% minecraft:diamond_sword 1"
+			execute console command "give %loop-player% minecraft:iron_helmet 1"
+			execute console command "give %loop-player% minecraft:iron_chestplate 1"
+			execute console command "give %loop-player% minecraft:iron_leggings 1"
+			execute console command "give %loop-player% minecraft:iron_boots 1"
+			execute console command "give %loop-player% minecraft:bow 1	infinity"
+			execute console command "give %loop-player% minecraft:golden_carrot 16"
+			execute console command "give %loop-player% minecraft:arrow 1"
+			set {ffa.points.%name of event-arena%::%loop-player%} to 0
+	broadcast "&6GO!" in event-arena
+	
+#on walk:
+#	if name of minigame of player is "ffa":
+#		if {ffa.%name of arena of player%} is not set:
+#			if arena of player is started:
+#				cancel event
+				
+on death:
+	if "%name of minigame of player%" is "ffa":
+		strike lightning at player
+		set {ffa.respawn::%victim%} to 1
+		if attacker is a player:
+			add 1 to {ffa.points::%attacker%}
+		else:
+			stop
+	else:
+		stop
+	loop all players:
+		if "%name of minigame of player%" is "ffa":
+			{ffa.points::%loop-player%} is 3
+			broadcast "%loop-player% a gagné une partie en FFA"
+			loop all players in arena of loop-player:
+				make loop-player-2 leave arena
+			set {ffa.points::%loop-player%} to 0
+			set {ffa.respawn::%loop-player%} to 0
+		else:
+			stop
+			
+every second:
+	loop all players:
+		if name of minigame of loop-player is "ffa":
+			{ffa.respawn::%loop-player%} is between 1 and 2
+			set {ffa.respawn::%loop-player%} to 0
+			add random integer between 1 and 25 to {_i}		
+			teleport loop-player to {ffa.spawns.%name of arena of loop-player%::%{_i}%}
+		else:
+			stop
+	loop all players:	
+		if name of minigame of loop-player is "ffa":
+			{ffa.points::%loop-player%} is 3
+			broadcast "%loop-player% gagne une partie en FFA"
+			loop all players in arena of loop-player:
+				make loop-player-2 leave arena
+			set {ffa.points::%loop-player%} to 0
+			set {ffa.respawn::%loop-player%} to 0
+		else:
+			stop
+			
+on break:
+	cancel event
+    
+on place:
+	cancel event
+

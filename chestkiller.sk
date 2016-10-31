@@ -1,0 +1,109 @@
+on skript start:
+	create minigame named "chestkiller" with command "ck" and prefix "Chest Killer"
+command /ckadmin [<text>] [<text>]:
+	permission: chestkiller.admin
+	executable by: players
+	trigger:
+		if arg 1 is "addspawn":
+			if arg 2 is set:
+				if size of {ck.spawns.%argument 2%::*} is smaller than 25:
+					add location of player to {ck.spawns.%argument 2%::*}
+					send "&aSpawn n°&2%size of {ck.spawns.%argument 2%::*}%&a ajouté pour l'arène &2%argument 2%&a!"
+				else:
+					send "&cTous les spawns ont déjà été placés!"
+			else:
+				send "&6/ckadmin &aaddspawn <arene>"
+		else if arg 1 is "removeall":
+			if arg 2 is set:
+				send "&aTous les spawns ont été retirés pour larène &2%argument 2%&a!"
+				clear {ck.spawns.%argument 2%::*}
+			else:
+				send "&6/ckadmin &aremoveall <arene>"
+		else:
+			send "&6/ckadmin addspawn <arene>"
+			send "&6/ckadmin removeall <arene>"
+
+on arena start:
+	clear {ck.%name of event-arena%}
+	loop {broken.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to {broken.type::%loop-index%}
+	loop {faded.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to {faded.type::%loop-index%}
+	loop {placed.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to air
+	delete {broken.blocks::*}
+	delete {placed.blocks::*}
+	delete {faded.blocks::*}
+	delete {broken.type::*}
+	delete {faded.type::*}
+	delete {ignore.locations::*}
+	if name of event-minigame is "chestkiller":
+		loop all players in event-arena:
+			add 1 to {_i}
+			teleport loop-player to {ck.spawns.%name of event-arena%::%{_i}%}
+			execute console command "/gamemode 0 %loop-player%"
+			execute console command "/gadgetsmenu reset %loop-player% all"
+			execute console command "/heal %loop-player%"
+		set {_i} to 10
+		loop 10 times:
+			if event-arena is started:
+				broadcast "&6Le jeu commence dans %{_i}% secondes!" in event-arena
+				wait 1 second
+			else:
+				stop
+			remove 1 from {_i}
+	broadcast "&6GO!" in event-arena
+	broadcast "&6Vous avez 5 minutes sans PVP!" in event-arena
+	set {ck.%name of event-arena%} to true
+	execute console command "/rg flag ck%name of event-arena% pvp -w world deny"
+	wait 1 minute
+	broadcast "&6Encore 4 minutes avant l'activation du pvp!" in event-arena
+	wait 1 minute
+	broadcast "&6Encore 3 minutes avant l'activation du pvp!" in event-arena
+	wait 1 minute
+	broadcast "&6Encore 2 minutes avant l'activation du pvp!" in event-arena
+	wait 1 minute
+	broadcast "&6Encore 1 minute avant l'activation du pvp!" in event-arena
+	wait 30 seconds
+	broadcast "&6Encore 30 secondes avant l'activation du pvp!" in event-arena
+	wait 30 seconds
+	execute console command "/rg flag ck%name of event-arena% pvp -w world allow"
+	broadcast "&6Le PVP est activé!" in event-arena
+
+on walk:
+	if name of minigame of player is "chestkiller":
+		if {ck.%name of arena of player%} is not set:
+			if arena of player is started:
+				cancel event
+
+on death of player:
+	if name of minigame of player is "chestkiller":
+		strike lightning at player
+		make player leave current arena
+		send "&cVous avez perdu!" to player
+		loop all players in arena of player:
+			send "&c%loop-player% est mort!" to loop-player
+
+on break:
+	if "%region at target block%" contains "ck":
+		add location of block to {broken.blocks::*}
+		add type of block to {broken.type::*}
+		set {ignore.locations::%location of event-block%} to true
+	else:
+		stop
+on place:
+	if "%region at target block%" contains "ck":
+		add location of block to {placed.blocks::*}
+		set {ignore.locations::%location of event-block%} to true
+	else:
+		stop
+on fade:
+	if "%region at target block%" contains "ck":
+		add location of block to {faded.blocks::*}
+		add type of block to {faded.type::*}
+		set {ignore.locations::%location of event-block%} to true
+	else:
+		stop

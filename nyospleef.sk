@@ -1,0 +1,83 @@
+on skript start:
+	create minigame named "spleef" with command "spleef" and prefix "Spleef"
+command /spleefadmin [<text>] [<text>]:
+	permission: nyomg.spleef.admin
+	executable by: players
+	trigger:
+		if arg 1 is "addspawn":
+			if arg 2 is set:
+				if size of {splf.spawns.%argument 2%::*} is smaller than 25:
+					add location of player to {splf.spawns.%argument 2%::*}
+					send "&aSpawn n°&2%size of {splf.spawns.%argument 2%::*}%&a ajouté pour l'arène &2%argument 2%&a!"
+				else:
+					send "&cTous les spawns ont déjà été placés!"
+			else:
+				send "&6/spleefadminadmin &aaddspawn <arene>"
+		else if arg 1 is "removeall":
+			if arg 2 is set:
+				send "&aTous les spawns ont été retirés pour larène &2%argument 2%&a!"
+				clear {splf.spawns.%argument 2%::*}
+			else:
+				send "&6/spleefadmin &aremoveall <arene>"
+		else:
+			send "&6/spleefadmin addspawn <arene>"
+			send "&6/spleefadmin removeall <arene>"
+on arena start:
+	clear {splf.%name of event-arena%}
+	loop {splf.broken.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to {splf.broken.type::%loop-index%}
+	loop {faded.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to {splf.faded.type::%loop-index%}
+	loop {placed.blocks::*}:
+		set {_loc} to loop-value
+		set block at {_loc} to air
+	delete {splf.broken.blocks::*}
+	delete {splf.placed.blocks::*}
+	delete {splf.faded.blocks::*}
+	delete {splf.broken.type::*}
+	delete {splf.faded.type::*}
+	delete {splf.ignore.locations::*} 
+	if name of event-minigame is "spleef":
+		loop all players in event-arena:
+			add 1 to {_i}
+			teleport loop-player to {splf.spawns.%name of event-arena%::%{_i}%}
+			execute console command "gamemode 0 %loop-player%"
+			execute console command "gadgetsmenu reset %loop-player% all"
+			execute console command "heal %loop-player%"
+			execute console command "give %loop-player% minecraft:diamond_shovel 1 unbreaking:5000 efficienty: 10 name:&aLa Petite Pelle"
+	broadcast "&6GO!" in event-arena
+	
+on walk:
+	if name of minigame of player is "spleef":
+		if {splf.%name of arena of player%} is not set:
+			if arena of player is started:
+				cancel event
+on death of player:
+	if name of minigame of player is "spleef":
+		strike lightning at player
+		make player leave current arena
+		send "&cVous avez perdu!" to player
+			
+on break:
+	if "%region at target block%" contains "splf":
+		add location of block to {splf.broken.blocks::*}
+		add type of block to {splf.broken.type::*}
+		set {splf.ignore.locations::%location of event-block%} to true
+	else:
+		stop
+on place:
+	if "%region at target block%" contains "splf":
+		add location of block to {splf.placed.blocks::*}
+		set {ignore.locations::%location of event-block%} to true
+	else:
+		stop
+on fade:
+	if "%region at target block%" contains "splf":
+		add location of block to {splf.faded.blocks::*}
+		add type of block to {splf.faded.type::*}
+		set {splf.ignore.locations::%location of event-block%} to true
+	else:
+		stop
+		
