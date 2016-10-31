@@ -1,0 +1,289 @@
+on death of player:
+  attacker is a player
+  execute console command "/eco give %attacker% 50"
+  send "&6&l(Récompenses / Privé) &6> &2Vous avez reçu 50$ pour avoir tué %player%" to attacker
+
+on login:
+	wait 2 ticks
+	set player's gamemode to adventure
+	execute console command "/spawn %player%"
+
+command /signaler <player> <text>:
+  description: Signaler un joueur
+  usage: /signaler <joueur> <raison>
+  aliases: /report
+  trigger:
+    If {report.active} is true:
+      add 1 to {reports.%arg-1%}
+      set {_number} to {reports.%arg-1%}
+      set {report.report.%arg-1%::%{_number}%} to "%arg-2%"
+      set {report.author.%arg-1%::%{_number}%} to "%player%"
+      loop all players:
+        loop-player has permission "reports.getreports"
+        {getreports.%loop-player%} is true
+        # send "&6&l(Report / Admin) &6> &2%arg-1% a été report par %player% !" to loop-player
+        execute console command "/tellraw %loop-player% ["""",{""text"":""(Reports / Admin) "",""color"":""gold"",""bold"":true},{""text"":""> "",""color"":""gold"",""bold"":false},{""text"":""%arg-1% a été report par %player% ( %{_number}% fois, raison : %arg-2% )"",""color"":""red""}]"
+        execute console command "/tellraw %loop-player% ["""",{""text"":""[TP]"",""color"":""dark_green"",""clickEvent"":{""action"":""run_command"",""value"":""/tp %arg-1%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Se téléporter à %arg-1%""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Kick]"",""color"":""dark_purple"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gkick %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Kicker le joueur du serveur""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Permaban]"",""color"":""dark_red"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gban %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Bannir le joueur du network entier (BAT)""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Ban temporaire]"",""color"":""gold"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gtempban %arg-1% [durée]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Tempban %arg-1%""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Mute]"",""color"":""dark_aqua"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gmute %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Mute le joueur (chat)""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Avertissement]"",""color"":""gray"",""clickEvent"":{""action"":""suggest_command"",""value"":""/warn %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Donner un avertissement à %arg-1% ""},{""text"":""(3 avertissements = ban)"",""color"":""dark_red""}]}}}]"
+      send "&6&l(Report) &6> &2Votre report contre %arg-1% a été envoyé !" to player
+    else:
+      send "&6&l(Report) &6> &cLes reports sont désactivés pour le moment !" to player
+
+command /resetsignaler <offline player>:
+  description: Reset les signalements
+  usage: /resetsignaler <joueur>
+  permission: reports.reset
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /rs
+  trigger:
+    set {reports.%argument%} to 0
+    delete {report.report.%arg-1%::*}
+    delete {report.author.%argument%::*}
+    message "&6&l(Report / Admin) &6> &2%argument% a été réinitialisé !"
+
+
+
+command /resetsignalerall:
+  description: Reset les signalements
+  usage: /resetsignalerall
+  permission: reports.reset
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /rsall
+  trigger:
+    loop all players:
+      set {reports.%loop-player%} to 0
+      delete {report.report.%loop-player%::*}
+      delete {report.author.%loop-player%::*}
+    message "&6&l(Report / Admin) &6> &2Les reports ont été réinitialisés !"
+    broadcast "&6&l(Reports) &6> &2Les reports ont été réinitialisés !"
+
+command /suspendreports:
+  description: Suspendre les signalements
+  usage: /suspendreports
+  permission: reports.suspend
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /sr
+  trigger:
+    set {report.active} to false
+    message "&6&l(Report / Admin) &6> &cLes reports ont été désactivés !"
+    broadcast "&6&l(Reports) &6> &cLes reports ont été désactivés par un admin !"
+
+command /unpausereports:
+  description: Réactiver les reports
+  usage: /unpausereports
+  permission: reports.unsuspend
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /ur
+  trigger:
+    set {report.active} to true
+    message "&6&l(Report / Admin) &6> &2Les reports ont été réactivés !"
+    broadcast "&6&l(Reports) &6> &2Les reports ont été réactivés par un admin !"
+
+command /inforeport <player>:
+  description: Obtenir les infos
+  usage: /inforeport <joueur>
+  permission: reports.info
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /ir
+  trigger:
+    set {_number} to {reports.%arg-1%}
+    message "&6&l(Report / Admin) &6> &c%arg-1% : %{_number}% reports !"
+    loop {report.report.%arg-1%::*}:
+      set {_author} to {report.author.%arg-1%::%loop-index%}
+      message "&6&l> &c%loop-value% (par %{_author}%)"
+    execute console command "/tellraw %player% ["""",{""text"":""[TP]"",""color"":""dark_green"",""clickEvent"":{""action"":""run_command"",""value"":""/tp %arg-1%""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Se téléporter à %arg-1%""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Kick]"",""color"":""dark_purple"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gkick %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Kicker le joueur du serveur""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Permaban]"",""color"":""dark_red"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gban %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Bannir le joueur du network entier (BAT)""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Ban temporaire]"",""color"":""gold"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gtempban %arg-1% [durée]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Tempban %arg-1%""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Mute]"",""color"":""dark_aqua"",""clickEvent"":{""action"":""suggest_command"",""value"":""/gmute %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Mute le joueur (chat)""}]}}},{""text"":"" "",""color"":""none""},{""text"":""[Avertissement]"",""color"":""gray"",""clickEvent"":{""action"":""suggest_command"",""value"":""/comment %arg-1% [raison]""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Donner un avertissement à %arg-1% ""},{""text"":""(3 avertissements = ban)"",""color"":""dark_red""}]}}}]"
+
+command /unmod:
+  description: Désactiver/Activer le reçu de reports
+  usage: /unmod
+  permission: reports.toggle
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /um
+  trigger:
+    set {getreports.%player%} to false
+    message "&6&l(Report / Admin) &6> &cReports : OFF"
+
+command /mod:
+  description: Désactiver/Activer le reçu de reports
+  usage: /mod
+  permission: reports.toggle
+  permission message: Vous ne pouvez pas faire ça
+  trigger:
+    set {getreports.%player%} to true
+    message "&6&l(Report / Admin) &6> &2Reports : ON"
+
+command /softban <offline player>:
+  description: SoftBan un joueur
+  usage: /softban <joueur>
+  permission: reports.softban
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /sb
+  trigger:
+    set {softban.%argument%} to true
+    message "&6&l(SoftBan / Admin) &6> &2%argument% a été softban"
+    execute console command "/title %argument% title ["""",{""text"":""Vous êtes soft-ban !"",""color"":""dark_red""}]"
+
+command /unsoftban <offline player>:
+  description: UnSoftBan un joueur
+  usage: /unsoftban <joueur>
+  permission: reports.softban
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /usb
+  trigger:
+    set {softban.%argument%} to false
+    message "&6&l(SoftBan / Admin) &6> &2%argument% a été un-softban"
+
+on click:
+  {softban.%player%} is true
+  cancel event
+  message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
+
+on command:
+  {softban.%player%} is true
+  player don't have the permission "reports.softban.bypass"
+  cancel event
+  message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
+
+on chat:
+  {softban.%player%} is true
+  cancel event
+  message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
+
+on any movement:
+	{cgu.%player%} is not true
+	cancel event
+	message "&cVous devez accepter les CGU !"
+
+on login:
+	if {cgu.%player%} is not true:
+		message "&2Bienvenue sur le serveur !"
+		message "&6&l(CGU) &6> &2Vous devez accepter les CGU"
+		message "&6> &2Elles sont trouvables ici : https://goo.gl/qjHFJQ"
+		message "&6> &2Vous devez les accepter en faisant /acceptcgu"
+		set {softban.%player%} to true
+  {softban.%player%} is true
+  wait 5 ticks
+  message "&6&l(SoftBan) &6> &cVous êtes softban du serveur"
+  execute console command "/title %player% times 5 45 5"
+  execute console command "/title %player% title ["""",{""text"":""Vous êtes soft-ban !"",""color"":""dark_red""}]"
+
+command /acceptcgu:
+  description: Acceptez les CGU
+  usage: /acceptcgu
+  trigger:
+		message "&6&l(CGU) &6> &2Vous avez accepté les CGU ! Merci, vous pouvez jouer !"
+		set {softban.%player%} to false
+		set {cgu.%player%} to true
+
+#Anti-Cheat / Spam
+
+on damage:
+  attacker is a player
+  If difference between {sc.%attacker%.time} and now is less than 1 ticks:
+    add 1 to {sc.%attacker%.warns}
+    execute console command "/report %attacker% Cheat : Auto-Click suspecté"
+    cancel event
+  set {sc.%attacker%.time} to now
+
+on chat:
+  add 1 to {spam.%player%}
+  set {_number} to {spam.%player%}
+  If {spam.%player%} is more than 2:
+    cancel event
+    log "(Anti-spam / Log) > Spam : %player% ( %message% ) !"
+    message "&6&l(Anti-spam) &6> &2Merci de ne pas spammer !"
+  If {spam.%player%} is more than 5:
+    loop all players:
+      loop-player has permission "cheat.getreports"
+      execute console command "/report %player% Spam (%message%)"
+  If {spam.%player%} is more than 10:
+    kick the player due to "(Spam) > Kické : Spam intesif."
+    loop all players:
+      loop-player has permission "cheat.getreports"
+      execute console command "/report %player% Spam : kické (%message%)"
+
+every 5 seconds:
+  loop players:
+    set {spam.%loop-player%} to 0
+    set {block.swearvalue.%loop-player%} to 0
+    set {sc.%loop-player%.warns} to 0
+
+#Anti-Insulte ou censure de mots pouvant choquer des groupes culturels ou religieux
+
+command /blockadd <text>:
+  description: UnSoftBan un joueur
+  usage: /blockadd <texte ou mot>
+  permission: block.add
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /ba
+  trigger:
+    add 1 to {block.swears.id}
+    set {_number} to {block.swears.id}
+    set {block.swear::%{_number}%} to "%argument%"
+    message "&6&l(Insultes / Admin) &6> &2%argument% a été ajouté, ID : %{_number}%"
+
+on chat:
+  loop {block.swear::*}:
+    if message is loop-value:
+      cancel event
+      message "&6&l(Censure) &6> &c""%message%"" &ccontient des insultes ou des mots pouvant choquer des groupes culturels ou religieux (%loop-value%). Votre message ne sera pas publié"
+      add 1 to {block.swearvalue.%player%}
+      if {block.swearvalue.%player%} is more than 4:
+        execute console command "/report %player% Insulte (%message%)"
+      stop
+    else if message contains "%loop-value%":
+      cancel event
+      message "&6&l(Censure) &6> &c""%message%"" &ccontient des insultes ou des mots pouvant choquer des groupes culturels ou religieux (%loop-value%). Votre message ne sera pas publié"
+      add 1 to {block.swearvalue.%player%}
+      if {block.swearvalue.%player%} is more than 4:
+        execute console command "/report %player% Insulte (%message%)"
+      stop
+
+on command:
+  loop {block.swear::*}:
+    if command is loop-value:
+      cancel event
+      message "&6&l(Censure) &6> &c""%command%"" &ccontient des insultes ou des mots pouvant choquer des groupes culturels ou religieux (%loop-value%). Votre commande ne sera pas éxécutée"
+      add 1 to {block.swearvalue.%player%}
+      if {block.swearvalue.%player%} is more than 4:
+        execute console command "/report %player% Insulte (%command%)"
+      stop
+    else if command contains "%loop-value%":
+      cancel event
+      message "&6&l(Censure) &6> &c""%command%"" &ccontient des insultes ou des mots pouvant choquer des groupes culturels ou religieux (%loop-value%). Votre commande ne sera pas éxécutée"
+      add 1 to {block.swearvalue.%player%}
+      if {block.swearvalue.%player%} is more than 4:
+        execute console command "/report %player% Insulte (%command%)"
+      stop
+
+command /listblock:
+  description: Lister les mots interdits
+  usage: /listblock
+  permission: block.list
+  permission message: Vous ne pouvez pas faire ça
+  aliases: /lb
+  trigger:
+    message "&6&l(Censure / Admin) &6> &2Liste des mots censurés :"
+    loop {block.swear::*}:
+      execute console command "/tellraw %player% ["""",{""text"":""> "",""color"":""gold"",""bold"":true},{""text"":""%loop-value% "",""color"":""red"",""clickEvent"":{""action"":""suggest_command"",""value"":""!delete {block.swear::%loop-index%}""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Supprimer %loop-value% du filtre""}]}},""bold"":false},{""text"":""(ID : %loop-index%)"",""color"":""red"",""italic"":true,""clickEvent"":{""action"":""suggest_command"",""value"":""!delete {block.swear::%loop-index%}""},""hoverEvent"":{""action"":""show_text"",""value"":{""text"":"""",""extra"":[{""text"":""Supprimer %loop-value% du filtre""}]}}}]"
+    message "&6&oCliquez sur un mot pour le supprimer"
+
+#Plugin d'information en cas de lag
+command /lag:
+  description: Permet de savoir si vous laguez ou non
+  usage: /lag
+  trigger:
+    message "&9==========Lag=========="
+    set {_ping} to player's ping
+    message "&7Votre ping: %{_ping}%ms"
+    if {_ping} is greater than 200:
+      message "&cVotre ping est au dessus de 200ms, vous laguez."
+    else if {_ping} is greater than 100:
+      message "&6Votre ping est entre 100 et 200ms, il se peut que vous laguez."
+    else:
+      message "&aVotre ping est de moins de 100ms, vous ne laguez pas."
+    set {_tps} to tps
+    message "&7TPS du serveur: %{_tps}%."
+    if {_tps} is greater than 15:
+      message "&aLes TPS sont au dessus de 15, le serveur ne lague pas."
+    else:
+      message "&cLes TPS sont en dessous de 15, le serveur lague."
